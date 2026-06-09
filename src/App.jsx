@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import { AcademicoProvider } from './context/AcademicoContext';
+import PrivateRoute from './components/PrivateRoute';
 import MainLayout from './layouts/MainLayout';
 import AdminLayout from './layouts/AdminLayout';
 import EstudianteLayout from './layouts/EstudianteLayout';
@@ -28,39 +29,64 @@ import ProfesorMateriales from './pages/profesor/ProfesorMateriales';
 export default function App() {
   return (
     <AcademicoProvider>
-    <Routes>
-      <Route element={<MainLayout />}>
-        <Route path="/" element={<Home />} />
-        <Route path="/historia" element={<Historia />} />
-        <Route path="/ofertas" element={<Ofertas />} />
-        <Route path="/contacto" element={<Contacto />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/registro" element={<Registro />} />
-      </Route>
+      <Routes>
+        {/* ── Rutas públicas ── */}
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/historia" element={<Historia />} />
+          <Route path="/ofertas" element={<Ofertas />} />
+          <Route path="/contacto" element={<Contacto />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/registro" element={<Registro />} />
+        </Route>
 
-      <Route path="/panel/admin" element={<AdminLayout />}>
-        <Route index element={<AdminDashboard />} />
-        <Route path="cursos" element={<AdminCursos />} />
-        <Route path="usuarios" element={<AdminUsuarios />} />
-        <Route path="inscripciones" element={<AdminInscripciones />} />
-        <Route path="pagos" element={<AdminPagos />} />
-        <Route path="mensajes" element={<AdminMensajes />} />
-        <Route path="contenido" element={<AdminContenido />} />
-      </Route>
+        {/* ── Panel Admin (solo rol: admin) ── */}
+        <Route
+          path="/panel/admin"
+          element={
+            <PrivateRoute rol="admin">
+              <AdminLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route index element={<AdminDashboard />} />
+          <Route path="cursos" element={<AdminCursos />} />
+          <Route path="usuarios" element={<AdminUsuarios />} />
+          <Route path="inscripciones" element={<AdminInscripciones />} />
+          <Route path="pagos" element={<AdminPagos />} />
+          <Route path="mensajes" element={<AdminMensajes />} />
+          <Route path="contenido" element={<AdminContenido />} />
+        </Route>
 
-      <Route path="/panel/estudiante" element={<EstudianteLayout />}>
-        <Route index element={<EstudiantePanel />} />
-      </Route>
+        {/* ── Panel Estudiante (solo rol: estudiante) ── */}
+        <Route
+          path="/panel/estudiante"
+          element={
+            <PrivateRoute rol="estudiante">
+              <EstudianteLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route index element={<EstudiantePanel />} />
+        </Route>
 
-      <Route path="/panel/profesor" element={<ProfesorLayout />}>
-        <Route index element={<ProfesorDashboard />} />
-        <Route path="cursos" element={<ProfesorCursos />} />
-        <Route path="alumnos" element={<ProfesorAlumnos />} />
-        <Route path="calificaciones" element={<ProfesorCalificaciones />} />
-        <Route path="informes" element={<ProfesorInformes />} />
-        <Route path="materiales" element={<ProfesorMateriales />} />
-      </Route>
-    </Routes>
+        {/* ── Panel Profesor (solo rol: profesor) ── */}
+        <Route
+          path="/panel/profesor"
+          element={
+            <PrivateRoute rol="profesor">
+              <ProfesorLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route index element={<ProfesorDashboard />} />
+          <Route path="cursos" element={<ProfesorCursos />} />
+          <Route path="alumnos" element={<ProfesorAlumnos />} />
+          <Route path="calificaciones" element={<ProfesorCalificaciones />} />
+          <Route path="informes" element={<ProfesorInformes />} />
+          <Route path="materiales" element={<ProfesorMateriales />} />
+        </Route>
+      </Routes>
     </AcademicoProvider>
   );
 }

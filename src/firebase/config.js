@@ -1,13 +1,15 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: "AIzaSyDeimIXoEo_Uh5StkV0CF3jzzpDQKJSjwA",
+  authDomain: "proyectowebll.firebaseapp.com",
+  projectId: "proyectowebll",
+  storageBucket: "proyectowebll.firebasestorage.app",
+  messagingSenderId: "550087202485",
+  appId: "1:550087202485:web:7e7b4a6756b36c5acf50fc",
+  measurementId: "G-ZBB5HKGSJS"
 };
 
 export const isFirebaseConfigured = Boolean(
@@ -17,10 +19,12 @@ export const isFirebaseConfigured = Boolean(
 );
 
 let db = null;
+let auth = null;
 
 if (isFirebaseConfigured) {
   const app = initializeApp(firebaseConfig);
   db = getFirestore(app);
+  auth = getAuth(app);
 }
 
-export { db };
+export { db, auth };
