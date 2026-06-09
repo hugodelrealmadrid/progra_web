@@ -1,25 +1,66 @@
 import { Routes, Route } from 'react-router-dom';
+import { AcademicoProvider } from './context/AcademicoContext';
 import MainLayout from './layouts/MainLayout';
+import AdminLayout from './layouts/AdminLayout';
+import EstudianteLayout from './layouts/EstudianteLayout';
+import ProfesorLayout from './layouts/ProfesorLayout';
 import Home from './pages/Home';
-import Placeholder from './pages/Placeholder';
+import Historia from './pages/Historia';
+import Ofertas from './pages/Ofertas';
+import Contacto from './pages/Contacto';
 import Login from './pages/Login';
 import Registro from './pages/Registro';
-import PanelPage from './pages/PanelPage';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminCursos from './pages/admin/AdminCursos';
+import AdminUsuarios from './pages/admin/AdminUsuarios';
+import AdminInscripciones from './pages/admin/AdminInscripciones';
+import AdminPagos from './pages/admin/AdminPagos';
+import AdminMensajes from './pages/admin/AdminMensajes';
+import AdminContenido from './pages/admin/AdminContenido';
+import EstudiantePanel from './pages/estudiante/EstudiantePanel';
+import ProfesorDashboard from './pages/profesor/ProfesorDashboard';
+import ProfesorCursos from './pages/profesor/ProfesorCursos';
+import ProfesorAlumnos from './pages/profesor/ProfesorAlumnos';
+import ProfesorCalificaciones from './pages/profesor/ProfesorCalificaciones';
+import ProfesorInformes from './pages/profesor/ProfesorInformes';
+import ProfesorMateriales from './pages/profesor/ProfesorMateriales';
 
 export default function App() {
   return (
-    <MainLayout>
-      <Routes>
+    <AcademicoProvider>
+    <Routes>
+      <Route element={<MainLayout />}>
         <Route path="/" element={<Home />} />
-        <Route path="/historia" element={<Placeholder title="Sobre la Academia — Historia" />} />
-        <Route path="/ofertas" element={<Placeholder title="Docentes / Oferta académica" />} />
-        <Route path="/contacto" element={<Placeholder title="Contacto Principal" />} />
+        <Route path="/historia" element={<Historia />} />
+        <Route path="/ofertas" element={<Ofertas />} />
+        <Route path="/contacto" element={<Contacto />} />
         <Route path="/login" element={<Login />} />
         <Route path="/registro" element={<Registro />} />
-        <Route path="/panel/admin" element={<PanelPage rol="admin" />} />
-        <Route path="/panel/profesor" element={<PanelPage rol="profesor" />} />
-        <Route path="/panel/estudiante" element={<PanelPage rol="estudiante" />} />
-      </Routes>
-    </MainLayout>
+      </Route>
+
+      <Route path="/panel/admin" element={<AdminLayout />}>
+        <Route index element={<AdminDashboard />} />
+        <Route path="cursos" element={<AdminCursos />} />
+        <Route path="usuarios" element={<AdminUsuarios />} />
+        <Route path="inscripciones" element={<AdminInscripciones />} />
+        <Route path="pagos" element={<AdminPagos />} />
+        <Route path="mensajes" element={<AdminMensajes />} />
+        <Route path="contenido" element={<AdminContenido />} />
+      </Route>
+
+      <Route path="/panel/estudiante" element={<EstudianteLayout />}>
+        <Route index element={<EstudiantePanel />} />
+      </Route>
+
+      <Route path="/panel/profesor" element={<ProfesorLayout />}>
+        <Route index element={<ProfesorDashboard />} />
+        <Route path="cursos" element={<ProfesorCursos />} />
+        <Route path="alumnos" element={<ProfesorAlumnos />} />
+        <Route path="calificaciones" element={<ProfesorCalificaciones />} />
+        <Route path="informes" element={<ProfesorInformes />} />
+        <Route path="materiales" element={<ProfesorMateriales />} />
+      </Route>
+    </Routes>
+    </AcademicoProvider>
   );
 }

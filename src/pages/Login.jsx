@@ -1,71 +1,66 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-
-const DEMO_USERS = [
-  { nombre: 'Emily Condori', email: 'emily@admin.amc.bo', rol: 'admin' },
-  { nombre: 'Hugo Delgado', email: 'hugo@profesor.amc.bo', rol: 'profesor' },
-  { nombre: 'Flores Viza', email: 'flores@estudiante.amc.bo', rol: 'estudiante' },
-];
+import { IMG } from '../data/images';
 
 export default function Login() {
-  const { login } = useAuth();
+  const { loginWithCredentials } = useAuth();
+  const [email, setEmail] = useState('emily@admin.amc.bo');
+  const [password, setPassword] = useState('demo1234');
+  const [error, setError] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const result = loginWithCredentials(email.trim(), password);
+    if (!result.ok) setError(result.error);
+    else setError('');
+  };
 
   return (
-    <section className="bg-amc-palido px-4 py-16 md:px-8">
-      <div className="mx-auto max-w-md rounded-lg bg-white p-8 shadow-card">
-        <h1 className="text-2xl font-bold text-amc-oscuro">Iniciar sesión</h1>
-        <p className="mt-2 text-sm text-gray-600">
-          Accede a tu panel de la academia. (Demo hasta conectar Firebase Auth)
-        </p>
+    <section
+      className="relative flex min-h-[calc(100vh-120px)] items-center justify-center bg-gray-800 bg-cover bg-center px-6 py-16"
+      style={{ backgroundImage: `url('${IMG.edificio}')` }}
+    >
+      <div className="absolute inset-0 bg-black/60" />
 
-        <form
-          className="mt-6 space-y-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            login(DEMO_USERS[0]);
-          }}
-        >
+      <div className="relative z-10 w-full max-w-md rounded-lg bg-white p-8 shadow-card md:p-10">
+        <h1 className="text-center text-xl font-bold text-gray-900">Iniciar sesión</h1>
+        <p className="mt-2 text-center text-sm text-gray-500">Accede a tu panel de la academia</p>
+
+        <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
           <div>
             <label className="mb-1 block text-sm font-semibold text-gray-600">Email</label>
             <input
               type="email"
-              defaultValue="emily@admin.amc.bo"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="tu@email.com"
+              required
+              className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"
             />
           </div>
           <div>
             <label className="mb-1 block text-sm font-semibold text-gray-600">Contraseña</label>
             <input
               type="password"
-              defaultValue="demo1234"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm"
             />
           </div>
+
+          {error && <p className="text-center text-sm text-red-600">{error}</p>}
+
           <button
             type="submit"
-            className="w-full rounded-lg bg-amc-verde py-2.5 text-sm font-bold text-white hover:bg-amc-oscuro"
+            className="w-full rounded-lg bg-amc-oscuro py-3 text-sm font-bold text-white hover:bg-amc-verde"
           >
-            INGRESAR
+            Iniciar sesión
           </button>
         </form>
 
-        <p className="mt-6 text-xs font-semibold uppercase tracking-wide text-gray-500">
-          Acceso rápido demo por rol
-        </p>
-        <div className="mt-2 flex flex-col gap-2">
-          {DEMO_USERS.map((u) => (
-            <button
-              key={u.rol}
-              type="button"
-              onClick={() => login(u)}
-              className="rounded-lg border border-amc-verde px-3 py-2 text-left text-sm text-amc-oscuro hover:bg-amc-palido"
-            >
-              {u.nombre} — <span className="font-semibold capitalize">{u.rol}</span>
-            </button>
-          ))}
-        </div>
-
-        <Link to="/registro" className="mt-4 block text-center text-sm text-amc-acento hover:underline">
+        <Link to="/registro" className="mt-6 block text-center text-sm text-amc-acento hover:underline">
           ¿No tienes cuenta? Regístrate
         </Link>
       </div>

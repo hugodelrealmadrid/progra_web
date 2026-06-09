@@ -1,0 +1,11 @@
+Pon tus imágenes AQUÍ con estos nombres exactos:
+
+  piano.jpg      → tarjeta Piano
+  guitarra.jpg   → tarjeta Guitarra
+  violin.jpg     → tarjeta Violín
+  orquesta.jpg   → sección Orquestas
+  hero.jpg       → foto grande arriba
+  mapa.jpg       → sección Ubicación
+
+Si falta una imagen, la página igual carga (solo se verá rota esa foto).
+Renombra .jpn a .jpg si hace falta.

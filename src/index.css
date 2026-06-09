@@ -5,3 +5,100 @@
 body {
   @apply font-sans text-gray-900 antialiased;
 }
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes floatSoft {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.hero-title {
+  animation: fadeInUp 0.7s ease-out both;
+}
+
+.hero-subtitle {
+  animation: fadeInUp 0.7s ease-out 0.15s both;
+}
+
+.hero-cta {
+  animation: fadeInUp 0.7s ease-out 0.3s both;
+}
+
+.hero-image-main {
+  animation: slideInRight 0.9s ease-out 0.2s both;
+}
+
+.hero-image-main img {
+  animation: floatSoft 5s ease-in-out 1s infinite;
+}
+
+.hero-image-secondary {
+  animation: scaleIn 0.8s ease-out 0.4s both;
+}
+
+.course-card {
+  animation: fadeInUp 0.6s ease-out both;
+}
+
+.cta-title {
+  animation: fadeInUp 0.6s ease-out both;
+}
+
+.cta-subtitle {
+  animation: fadeInUp 0.6s ease-out 0.1s both;
+}
+
+.cta-buttons {
+  animation: fadeInUp 0.6s ease-out 0.2s both;
+}
+
+.historia-hero .hero-title,
+.historia-hero .hero-subtitle,
+.historia-hero .hero-image-main {
+  animation: fadeInUp 0.7s ease-out both;
+}
+
+.historia-hero .hero-subtitle {
+  animation-delay: 0.12s;
+}
+
+.historia-hero .hero-image-main {
+  animation-delay: 0.24s;
+}

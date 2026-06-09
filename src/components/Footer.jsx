@@ -1,66 +1,115 @@
 import { Link } from 'react-router-dom';
+import {
+  FaFacebook,
+  FaLinkedin,
+  FaYoutube,
+  FaInstagram,
+} from 'react-icons/fa';
 
-const footerColumns = [
-  {
-    title: 'Recursos',
-    links: [
-      { label: 'Explorar', to: '/' },
-      { label: 'Contacto Principal', to: '/contacto' },
-    ],
-  },
-  {
-    title: 'Academia',
-    links: [
-      { label: 'Especialidades Secundarias', to: '/ofertas' },
-      { label: 'Metodos de Ensenanza', to: '/ofertas' },
-      { label: 'Clases Colectivas', to: '/ofertas' },
-    ],
-  },
-  {
-    title: 'Visitanos en:',
-    links: [
-      { label: 'Biblioteca digital', to: '/ofertas' },
-      { label: 'Inscripciones', to: '/ofertas' },
-    ],
-  },
-];
+import logoAMC from '../assets/logo-amc.png';
 
 export default function Footer() {
   return (
-    <footer className="mt-auto bg-[#2a2a2a] text-gray-300">
-      <div className="mx-auto grid w-full max-w-[1440px] gap-8 px-4 py-10 md:grid-cols-4 md:px-8">
-        <div>
-          <p className="text-2xl font-bold text-white">amc</p>
-          <p className="mt-2 text-sm text-gray-400">
-            Academia Nacional de Musica &quot;Man Cesped&quot;
-          </p>
-          <p className="mt-4 text-xs text-gray-500">
-            Formación musical de excelencia en Bolivia.
-          </p>
+    <footer className="mt-auto bg-[#2E3631] text-white">
+      <div className="mx-auto flex max-w-[1440px] flex-col justify-between gap-12 px-8 py-12 md:flex-row md:items-start md:px-16">
+        
+        {/* Logo + Redes */}
+        <div className="flex flex-col">
+          <img
+            src={logoAMC}
+            alt="AMC"
+            className="w-[180px] object-contain"
+          />
+
+          <div className="mt-8 flex items-center gap-6">
+            <span className="text-3xl font-light">
+              Visítanos en:
+            </span>
+
+            <div className="flex gap-6 text-2xl">
+              <a href="#" className="transition hover:text-gray-300">
+                <FaFacebook />
+              </a>
+
+              <a href="#" className="transition hover:text-gray-300">
+                <FaLinkedin />
+              </a>
+
+              <a href="#" className="transition hover:text-gray-300">
+                <FaYoutube />
+              </a>
+
+              <a href="#" className="transition hover:text-gray-300">
+                <FaInstagram />
+              </a>
+            </div>
+          </div>
         </div>
 
-        {footerColumns.map((col) => (
-          <div key={col.title}>
-            <h4 className="mb-3 text-xs font-bold uppercase tracking-wide text-white">
-              {col.title}
-            </h4>
-            <ul className="space-y-2">
-              {col.links.map((link) => (
-                <li key={link.label}>
-                  <Link
-                    to={link.to}
-                    className="text-sm text-gray-400 transition hover:text-white"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+        {/* Menú derecho */}
+        <div className="grid grid-cols-2 gap-x-24 gap-y-4 text-lg">
+          
+          <div className="flex flex-col gap-6">
+            <Link
+              to="/recursos"
+              className="transition hover:text-gray-300"
+            >
+              Recursos
+            </Link>
+
+            <Link
+              to="/contacto"
+              className="transition hover:text-gray-300"
+            >
+              Contacto Principal
+            </Link>
+
+            <Link
+              to="/metodos-ensenanza"
+              className="transition hover:text-gray-300"
+            >
+              Métodos de Enseñanza
+            </Link>
+
+            <Link
+              to="/biblioteca"
+              className="transition hover:text-gray-300"
+            >
+              Biblioteca digital
+            </Link>
           </div>
-        ))}
-      </div>
-      <div className="border-t border-gray-700 py-4 text-center text-xs text-gray-500">
-        © {new Date().getFullYear()} Academia de Música Man Césped. Todos los derechos reservados.
+
+          <div className="flex flex-col gap-6">
+            <Link
+              to="/explorar"
+              className="transition hover:text-gray-300"
+            >
+              Explorar
+            </Link>
+
+            <Link
+              to="/especialidades"
+              className="transition hover:text-gray-300"
+            >
+              Especialidades Secundarias
+            </Link>
+
+            <Link
+              to="/clases"
+              className="transition hover:text-gray-300"
+            >
+              Clases Colectivas
+            </Link>
+
+            <Link
+              to="/inscripciones"
+              className="transition hover:text-gray-300"
+            >
+              Inscripciones
+            </Link>
+          </div>
+
+        </div>
       </div>
     </footer>
   );
