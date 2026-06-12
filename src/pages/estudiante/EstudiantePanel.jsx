@@ -22,6 +22,7 @@ export default function EstudiantePanel() {
     toast,
     getPerfilEstudiante,
     getCalificacionesEstudiante,
+    getInformesEstudiante,
     updatePerfilEstudiante,
     downloadMaterial,
     showToast,
@@ -40,6 +41,7 @@ export default function EstudiantePanel() {
   });
 
   const calificaciones = getCalificacionesEstudiante(user?.nombre ?? '');
+  const informes = getInformesEstudiante(user?.nombre ?? '');
 
   const guardarPerfil = (e) => {
     e.preventDefault();
@@ -178,6 +180,39 @@ export default function EstudiantePanel() {
               </tbody>
             </table>
           </div>
+        </section>
+
+        <section className="mt-10">
+          <PanelSectionTitle>Bitácora de Especialidad</PanelSectionTitle>
+          <p className="mt-1 text-sm text-gray-500">Informes de clase cargados por tu profesor — actualizados en tiempo real.</p>
+          {informes.length === 0 ? (
+            <div className="mt-5 rounded-lg border border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-500">
+              Aún no hay informes registrados para ti.
+            </div>
+          ) : (
+            <ol className="mt-5 space-y-4">
+              {informes.map((inf) => (
+                <li key={inf.id} className="rounded-lg border border-gray-200 bg-white p-4 shadow-card">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="font-semibold text-amc-oscuro">{inf.clase}</p>
+                      <p className="mt-0.5 text-xs text-gray-400">{inf.fecha}</p>
+                    </div>
+                    <span className={`rounded-full px-3 py-1 text-xs font-bold ${inf.nota >= 70 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                      Nota: {inf.nota}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-gray-700"><span className="font-medium">Contenido:</span> {inf.contenido}</p>
+                  {inf.observaciones && (
+                    <p className="mt-1 text-sm text-gray-600"><span className="font-medium">Observaciones:</span> {inf.observaciones}</p>
+                  )}
+                  {inf.material && (
+                    <p className="mt-1 text-sm text-amc-acento">📎 Material asignado: {inf.material}</p>
+                  )}
+                </li>
+              ))}
+            </ol>
+          )}
         </section>
 
         <section className="mt-10">

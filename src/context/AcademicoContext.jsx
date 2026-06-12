@@ -70,6 +70,25 @@ export function AcademicoProvider({ children }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }, [data]);
 
+  // ── Polling: sincroniza calificaciones desde localStorage cada 2s (simula onSnapshot) ──
+  useEffect(() => {
+    const interval = setInterval(() => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          setData((prev) => {
+            if (JSON.stringify(prev.calificaciones) !== JSON.stringify(parsed.calificaciones)) {
+              return parsed;
+            }
+            return prev;
+          });
+        }
+      } catch { /* ignore */ }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
   const showToast = useCallback((msg) => {
     setToast(msg);
     setTimeout(() => setToast(''), 3000);
@@ -106,17 +125,29 @@ export function AcademicoProvider({ children }) {
   }, [showToast]);
 
   const saveCalificaciones = useCallback(
-    (curso, notas) => {
+    (curso, notas, timestamps) => {
+      const ahora = new Date().toLocaleString('es-BO', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      });
+      const notasConTimestamp = notas.map((n) => ({
+        ...n,
+        _timestamps: {
+          ...(n._timestamps ?? {}),
+          ...(timestamps?.[n.id] ?? {}),
+        },
+        _ultimaEdicion: ahora,
+      }));
       setData((d) => {
         const updatedAlumnos = d.alumnos.map((a) => {
-          const nota = notas.find((n) => n.nombre === a.nombre && n.curso === curso);
+          const nota = notasConTimestamp.find((n) => n.nombre === a.nombre && n.curso === curso);
           if (!nota) return a;
           const prom = promedio(nota);
           return { ...a, promedio: prom || a.promedio, progreso: Math.min(100, prom) };
         });
         return {
           ...d,
-          calificaciones: { ...d.calificaciones, [curso]: notas },
+          calificaciones: { ...d.calificaciones, [curso]: notasConTimestamp },
           alumnos: updatedAlumnos,
         };
       });
@@ -255,6 +286,14 @@ export function AcademicoProvider({ children }) {
     [data.calificaciones]
   );
 
+  const getInformesEstudiante = useCallback(
+    (nombre) =>
+      data.informes
+        .filter((inf) => inf.alumno === nombre)
+        .sort((a, b) => new Date(b.fecha.split('/').reverse().join('-')) - new Date(a.fecha.split('/').reverse().join('-'))),
+    [data.informes]
+  );
+
   const getNotasAlumno = useCallback(
     (nombre) => Object.entries(data.calificaciones).flatMap(([curso, notas]) => {
       const n = notas.find((x) => x.nombre === nombre);
@@ -302,6 +341,7 @@ export function AcademicoProvider({ children }) {
       getPerfilEstudiante,
       getCalificacionesEstudiante,
       getNotasAlumno,
+      getInformesEstudiante,
       promedio,
       showToast,
     }),
@@ -323,6 +363,7 @@ export function AcademicoProvider({ children }) {
       getPerfilEstudiante,
       getCalificacionesEstudiante,
       getNotasAlumno,
+      getInformesEstudiante,
       showToast,
     ]
   );
