@@ -55,7 +55,7 @@ export default function AdminPagos() {
               <tr key={pago.id} className="border-t border-gray-100 bg-amc-palido/50 even:bg-white">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <img src={pago.avatar} alt="" className="h-8 w-8 rounded-full object-cover" />
+                    <img src={pago.avatar ?? "/favicon.ico"} alt="" className="h-8 w-8 rounded-full object-cover" onError={(e)=>{e.target.style.display="none"}} />
                     {pago.estudiante}
                   </div>
                 </td>

@@ -6,14 +6,14 @@ import StatusBadge from '../../components/admin/StatusBadge';
 const STAT_IMGS = [IMG.piano, IMG.director, IMG.orquesta, IMG.concierto];
 
 export default function AdminDashboard() {
-  const { users } = useAuth();
+  const { usuarios = [] } = useAuth();
   const { stats, inscripciones } = useAdminData();
 
   const cards = [
-    { label: 'Cursos activos', value: stats.cursos },
-    { label: 'Usuarios', value: users.length },
-    { label: 'Inscripciones', value: stats.inscripciones },
-    { label: 'Mensajes nuevos', value: stats.mensajes },
+    { label: 'Cursos activos', value: stats?.cursos ?? 0 },
+    { label: 'Usuarios', value: usuarios.length },
+    { label: 'Inscripciones', value: stats?.inscripciones ?? 0 },
+    { label: 'Mensajes nuevos', value: stats?.mensajes ?? 0 },
   ];
 
   return (
@@ -54,7 +54,7 @@ export default function AdminDashboard() {
               </tr>
             </thead>
             <tbody>
-              {inscripciones.map((row) => (
+              {(inscripciones ?? []).map((row) => (
                 <tr key={row.id} className="border-t border-gray-100 bg-amc-palido/50 even:bg-white">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">

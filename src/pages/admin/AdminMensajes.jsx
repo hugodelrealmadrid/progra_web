@@ -31,7 +31,7 @@ export default function AdminMensajes() {
                 <td className="px-4 py-3">{msg.fecha}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <img src={msg.avatar} alt="" className="h-8 w-8 rounded-full object-cover" />
+                    <img src={msg.avatar ?? "/favicon.ico"} alt="" className="h-8 w-8 rounded-full object-cover" onError={(e)=>{e.target.style.display="none"}} />
                     {msg.nombre}
                   </div>
                 </td>

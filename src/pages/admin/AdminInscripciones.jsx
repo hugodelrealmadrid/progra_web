@@ -52,7 +52,7 @@ export default function AdminInscripciones() {
               <tr key={row.id} className="border-t border-gray-100 bg-amc-palido/50 even:bg-white">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <img src={row.avatar} alt="" className="h-8 w-8 rounded-full object-cover" />
+                    <img src={row.avatar ?? "/favicon.ico"} alt="" className="h-8 w-8 rounded-full object-cover" onError={(e)=>{e.target.style.display="none"}} />
                     {row.estudiante}
                   </div>
                 </td>
