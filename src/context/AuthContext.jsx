@@ -1,130 +1,216 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+/**
+ * AuthContext — Firebase Authentication real
+ *
+ * - Login / registro con email+contraseña via Firebase Auth
+ * - Perfil del usuario (nombre, rol, activo) guardado en Firestore: usuarios/{uid}
+ * - onAuthStateChanged: detecta sesión activa automáticamente sin localStorage
+ * - Tiempo real: si el admin cambia el rol de un usuario, el cambio llega
+ *   sin que el usuario tenga que hacer logout/login
+ */
+
+import {
+  createContext, useContext, useEffect, useMemo, useState,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
-import { IMG } from '../data/images';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  updatePassword,
+} from 'firebase/auth';
+import {
+  doc, getDoc, setDoc, updateDoc, collection,
+  onSnapshot, query, orderBy, serverTimestamp,
+} from 'firebase/firestore';
+import { auth, db } from '../firebase/config';
 
 const AuthContext = createContext(null);
-const USERS_KEY = 'amc_users';
-const SESSION_KEY = 'amc_user';
 
 const PANEL_BY_ROLE = {
-  admin: '/panel/admin',
-  profesor: '/panel/profesor',
+  admin:      '/panel/admin',
+  profesor:   '/panel/profesor',
   estudiante: '/panel/estudiante',
 };
 
 const ROL_LABEL = {
-  admin: 'Administrador',
-  profesor: 'Profesor',
+  admin:      'Administrador',
+  profesor:   'Profesor',
   estudiante: 'Estudiante',
 };
 
-const DEFAULT_USERS = [
-  { nombre: 'Emily Condori', email: 'emily@admin.amc.bo', password: 'demo1234', rol: 'admin', avatar: IMG.director },
-  { nombre: 'Hugo Delgado', email: 'hugo@profesor.amc.bo', password: 'demo1234', rol: 'profesor', avatar: IMG.guitarra },
-  { nombre: 'Flores Viza', email: 'flores@estudiante.amc.bo', password: 'demo1234', rol: 'estudiante', avatar: IMG.violin },
-];
-
-function loadUsers() {
-  try {
-    const raw = localStorage.getItem(USERS_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {
-    /* ignore */
-  }
-  localStorage.setItem(USERS_KEY, JSON.stringify(DEFAULT_USERS));
-  return DEFAULT_USERS;
-}
-
-function loadSession() {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
 export function AuthProvider({ children }) {
-  const [users, setUsers] = useState(loadUsers);
-  const [user, setUser] = useState(loadSession);
   const navigate = useNavigate();
 
+  // user: datos de sesión enriquecidos con perfil Firestore
+  const [user,     setUser]     = useState(null);
+  const [loading,  setLoading]  = useState(true);
+  const [usuarios, setUsuarios] = useState([]);
+
+  // ── 1. Escuchar cambios de autenticación ──────────────────────────────────
   useEffect(() => {
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-  }, [users]);
+    const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        // Leer perfil desde Firestore en tiempo real
+        const perfilRef = doc(db, 'usuarios', firebaseUser.uid);
+        const unsub = onSnapshot(perfilRef, (snap) => {
+          if (snap.exists()) {
+            const perfil = snap.data();
+            setUser({
+              uid:    firebaseUser.uid,
+              email:  firebaseUser.email,
+              nombre: perfil.nombre ?? firebaseUser.displayName ?? 'Usuario',
+              rol:    perfil.rol    ?? 'estudiante',
+              activo: perfil.activo ?? true,
+              avatar: perfil.avatar ?? null,
+            });
+          } else {
+            // Perfil no existe aún (registro nuevo)
+            setUser({
+              uid:    firebaseUser.uid,
+              email:  firebaseUser.email,
+              nombre: firebaseUser.displayName ?? 'Usuario',
+              rol:    'estudiante',
+              activo: true,
+              avatar: null,
+            });
+          }
+          setLoading(false);
+        });
+        return unsub; // limpieza
+      } else {
+        setUser(null);
+        setLoading(false);
+      }
+    });
+    return unsubAuth;
+  }, []);
 
+  // ── 2. Lista de todos los usuarios (solo admin la necesita) ───────────────
   useEffect(() => {
-    if (user) localStorage.setItem(SESSION_KEY, JSON.stringify(user));
-    else localStorage.removeItem(SESSION_KEY);
-  }, [user]);
+    const q = query(collection(db, 'usuarios'), orderBy('nombre'));
+    const unsub = onSnapshot(q, (snap) => {
+      setUsuarios(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+    return unsub;
+  }, []);
 
-  const login = (userData) => {
-    setUser(userData);
-    const path = PANEL_BY_ROLE[userData.rol] ?? '/';
-    navigate(path);
-  };
-
-  const loginWithCredentials = (email, password) => {
-    const found = users.find((u) => u.email === email && u.password === password);
-    if (!found) return { ok: false, error: 'Email o contraseña incorrectos' };
-    const session = { nombre: found.nombre, email: found.email, rol: found.rol, avatar: found.avatar };
-    login(session);
-    return { ok: true };
-  };
-
-  const register = ({ nombre, email, password, rol }) => {
-    if (users.some((u) => u.email === email)) {
-      return { ok: false, error: 'Ese email ya está registrado' };
-    }
-    const nuevo = {
-      nombre,
-      email,
-      password,
-      rol,
-      avatar: IMG.ninos,
-    };
-    setUsers((prev) => [...prev, nuevo]);
-    return { ok: true };
-  };
-
-  const addUser = (userData) => {
-    if (users.some((u) => u.email === userData.email)) {
-      return { ok: false, error: 'Ese email ya existe' };
-    }
-    setUsers((prev) => [...prev, { ...userData, avatar: userData.avatar ?? IMG.ninos }]);
-    return { ok: true };
-  };
-
-  const updateUser = (email, updates) => {
-    setUsers((prev) => prev.map((u) => (u.email === email ? { ...u, ...updates } : u)));
-    if (user?.email === email) {
-      setUser((prev) => ({ ...prev, ...updates, rol: updates.rol ?? prev.rol }));
+  // ── Login ─────────────────────────────────────────────────────────────────
+  const loginWithCredentials = async (email, password) => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      // onAuthStateChanged ya actualiza `user` automáticamente
+      // Redirigir según rol (leemos el perfil recién actualizado)
+      const perfil = await getDoc(doc(db, 'usuarios', auth.currentUser.uid));
+      const rol    = perfil.exists() ? (perfil.data().rol ?? 'estudiante') : 'estudiante';
+      navigate(PANEL_BY_ROLE[rol] ?? '/');
+      return { ok: true };
+    } catch (e) {
+      const msgs = {
+        'auth/user-not-found':  'No existe una cuenta con ese email.',
+        'auth/wrong-password':  'Contraseña incorrecta.',
+        'auth/invalid-email':   'Email inválido.',
+        'auth/user-disabled':   'Esta cuenta está desactivada.',
+        'auth/too-many-requests':'Demasiados intentos. Intenta más tarde.',
+      };
+      return { ok: false, error: msgs[e.code] ?? 'Error al iniciar sesión.' };
     }
   };
 
-  const logout = () => {
-    setUser(null);
+  // ── Registro ──────────────────────────────────────────────────────────────
+  const register = async ({ nombre, email, password, rol = 'estudiante' }) => {
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      // Guardar perfil en Firestore
+      await setDoc(doc(db, 'usuarios', cred.user.uid), {
+        uid:      cred.user.uid,
+        nombre,
+        email,
+        rol,
+        activo:   true,
+        creadoEn: serverTimestamp(),
+      });
+      return { ok: true };
+    } catch (e) {
+      const msgs = {
+        'auth/email-already-in-use': 'Ese email ya está registrado.',
+        'auth/weak-password':        'La contraseña debe tener al menos 6 caracteres.',
+        'auth/invalid-email':        'Email inválido.',
+      };
+      return { ok: false, error: msgs[e.code] ?? 'Error al registrar.' };
+    }
+  };
+
+  // ── Crear usuario (solo admin) ────────────────────────────────────────────
+  // NOTA: createUserWithEmailAndPassword cierra la sesión actual en el cliente.
+  // Para evitar esto en producción, usa Firebase Admin SDK en una Cloud Function.
+  // Aquí se hace directo por simplicidad de proyecto académico.
+  const addUser = async ({ nombre, email, password, rol }) => {
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      await setDoc(doc(db, 'usuarios', cred.user.uid), {
+        uid: cred.user.uid, nombre, email, rol, activo: true,
+        creadoEn: serverTimestamp(),
+      });
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  };
+
+  // ── Actualizar perfil ─────────────────────────────────────────────────────
+  const updateUser = async (uid, updates) => {
+    await updateDoc(doc(db, 'usuarios', uid), updates);
+    // Si el usuario actualizado es el actual, onSnapshot lo propagará solo
+  };
+
+  // ── Cambiar contraseña ────────────────────────────────────────────────────
+  const cambiarPassword = async (nuevaPassword) => {
+    if (!auth.currentUser) return { ok: false, error: 'Sin sesión activa.' };
+    try {
+      await updatePassword(auth.currentUser, nuevaPassword);
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  };
+
+  // ── Logout ────────────────────────────────────────────────────────────────
+  const logout = async () => {
+    await signOut(auth);
     navigate('/');
   };
 
-  const value = useMemo(
-    () => ({
-      user,
-      users,
-      login,
-      loginWithCredentials,
-      register,
-      addUser,
-      updateUser,
-      logout,
-      isAuthenticated: Boolean(user),
-      rolLabel: user ? ROL_LABEL[user.rol] : '',
-      rolLabelOf: (rol) => ROL_LABEL[rol] ?? rol,
-    }),
-    [user, users]
-  );
+  // ── Helpers de rol ────────────────────────────────────────────────────────
+  const rolLabel    = user ? (ROL_LABEL[user.rol] ?? user.rol) : '';
+  const rolLabelOf  = (rol) => ROL_LABEL[rol] ?? rol;
+  const esAdmin     = user?.rol === 'admin';
+  const esProfesor  = user?.rol === 'profesor';
+  const esEstudiante = user?.rol === 'estudiante';
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  const value = useMemo(() => ({
+    user,
+    usuarios,
+    loading,
+    isAuthenticated: Boolean(user),
+    rolLabel,
+    rolLabelOf,
+    esAdmin,
+    esProfesor,
+    esEstudiante,
+    loginWithCredentials,
+    register,
+    addUser,
+    updateUser,
+    cambiarPassword,
+    logout,
+  }), [user, usuarios, loading]);
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

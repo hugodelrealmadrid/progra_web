@@ -1,136 +1,190 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { IMG } from '../data/images';
-import { syncCurso, removeCurso } from '../services/contenidoService';
-import { DEFAULT_CURSOS } from '../data/contenidoDefaults';
+/**
+ * AdminDataContext — Firestore tiempo real
+ *
+ * Colecciones:
+ *   cursos          { nombre, nivel, instrumento, precio, cupos, inscritos, estado, tipo, descripcion }
+ *   inscripciones   { estudiante, email, curso, nivel, fecha, pago, estado }
+ *   pagos           { estudiante, curso, monto, moneda, fecha, metodo, estado }
+ *   mensajes        { nombre, email, asunto, mensaje, leido, fecha }
+ *   contenido/general  { titulo, subtitulo, cuerpo, boton }
+ *   contenido/historia { titulo, subtitulo, cuerpo, boton }
+ */
+
+import {
+  createContext, useCallback, useContext, useEffect, useMemo, useState,
+} from 'react';
+import {
+  collection, doc, addDoc, setDoc, updateDoc, deleteDoc,
+  onSnapshot, query, orderBy, serverTimestamp,
+} from 'firebase/firestore';
+import { db } from '../firebase/config';
+import { DEFAULT_GENERAL, DEFAULT_HISTORIA, DEFAULT_CURSOS } from '../data/contenidoDefaults';
 
 const AdminDataContext = createContext(null);
-const DATA_KEY = 'amc_admin_data';
-
-const INITIAL = {
-  cursos: DEFAULT_CURSOS.map((c) => ({ ...c })),
-  inscripciones: [
-    { id: '1', estudiante: 'Flores Viza', curso: 'Piano Forte', nivel: 'Medio', fecha: '05/03/2024', pago: 'Pagado', estado: 'Confirmado', avatar: IMG.piano },
-    { id: '2', estudiante: 'María López', curso: 'Violín Clásico', nivel: 'Medio', fecha: '06/03/2024', pago: 'Pendiente', estado: 'En revisión', avatar: IMG.violin },
-  ],
-  pagos: [
-    { id: '1', estudiante: 'Flores Viza', curso: 'Piano Forte', monto: 'Bs. 350', fecha: '05/03/2026', metodo: 'Transferencia', estado: 'Pagado', avatar: IMG.piano },
-    { id: '2', estudiante: 'María López', curso: 'Violín', monto: 'Bs. 350', fecha: '08/03/2026', metodo: 'Efectivo', estado: 'Pendiente', avatar: IMG.violin },
-  ],
-  mensajes: [
-    { id: '1', fecha: '10/03/2026', nombre: 'Juan Pérez', email: 'juan@email.com', asunto: 'Consulta inscripción', mensaje: 'Quisiera saber los requisitos para inscribirme en piano.', leido: false, avatar: IMG.ninos },
-    { id: '2', fecha: '08/03/2026', nombre: 'Ana Torres', email: 'ana@email.com', asunto: 'Horarios violín', mensaje: '¿Cuáles son los horarios del nivel medio?', leido: true, avatar: IMG.coro },
-  ],
-  contenido: {
-    General: { titulo: 'Conoce la Convocatoria 2024', subtitulo: 'Inscríbete en la Academia de Música Man Césped', boton: 'Cronograma', imagen: IMG.edificio },
-    Historia: { titulo: 'Historia y Recorrido', subtitulo: 'Conoce el camino de la academia', boton: 'Leer más', imagen: IMG.edificio },
-    Ofertas: { titulo: 'Oferta Académica', subtitulo: 'Formando músicos desde 1940', boton: 'Ver niveles', imagen: IMG.orquesta },
-    Contacto: { titulo: 'Contacto Principal', subtitulo: 'Estamos para atenderte', boton: 'Enviar', imagen: IMG.edificio },
-  },
-};
-
-function loadData() {
-  try {
-    const raw = localStorage.getItem(DATA_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {
-    /* ignore */
-  }
-  return INITIAL;
-}
-
-let nextId = 100;
 
 export function AdminDataProvider({ children }) {
-  const [data, setData] = useState(loadData);
+  const [cursos,        setCursos]        = useState([]);
+  const [inscripciones, setInscripciones] = useState([]);
+  const [pagos,         setPagos]         = useState([]);
+  const [mensajes,      setMensajes]      = useState([]);
+  const [contenido,     setContenido]     = useState({
+    general:  DEFAULT_GENERAL,
+    historia: DEFAULT_HISTORIA,
+  });
+  const [cargando, setCargando] = useState(true);
 
+  // ── onSnapshot — todas las colecciones admin ──────────────────────────
   useEffect(() => {
-    localStorage.setItem(DATA_KEY, JSON.stringify(data));
-  }, [data]);
+    let ready = 0;
+    const tick = () => { if (++ready >= 4) setCargando(false); };
 
-  const stats = useMemo(
-    () => ({
-      cursos: data.cursos.filter((c) => c.estado === 'Activo').length,
-      usuarios: 156,
-      inscripciones: data.inscripciones.length,
-      mensajes: data.mensajes.filter((m) => !m.leido).length,
-    }),
-    [data]
-  );
+    const unsubCursos = onSnapshot(
+      query(collection(db, 'cursos'), orderBy('nombre')),
+      (snap) => { setCursos(snap.docs.map((d) => ({ id: d.id, ...d.data() }))); tick(); },
+      () => { setCursos(DEFAULT_CURSOS); tick(); }
+    );
 
-  const addCurso = (curso) => {
-    const id = curso.codigo || String(++nextId);
-    const payload = {
-      ...curso,
-      id,
-      codigo: curso.codigo || id,
-      descripcion: curso.descripcion || '',
-      destacado: curso.destacado ?? true,
+    const unsubInscrip = onSnapshot(
+      query(collection(db, 'inscripciones'), orderBy('fecha', 'desc')),
+      (snap) => { setInscripciones(snap.docs.map((d) => ({ id: d.id, ...d.data() }))); tick(); },
+      () => tick()
+    );
+
+    const unsubPagos = onSnapshot(
+      query(collection(db, 'pagos'), orderBy('fecha', 'desc')),
+      (snap) => { setPagos(snap.docs.map((d) => ({ id: d.id, ...d.data() }))); tick(); },
+      () => tick()
+    );
+
+    const unsubMensajes = onSnapshot(
+      query(collection(db, 'mensajes'), orderBy('fecha', 'desc')),
+      (snap) => { setMensajes(snap.docs.map((d) => ({ id: d.id, ...d.data() }))); tick(); },
+      () => tick()
+    );
+
+    // Contenido público (general + historia)
+    const unsubGeneral = onSnapshot(doc(db, 'contenido', 'general'), (snap) => {
+      if (snap.exists()) setContenido((prev) => ({ ...prev, general: snap.data() }));
+    });
+    const unsubHistoria = onSnapshot(doc(db, 'contenido', 'historia'), (snap) => {
+      if (snap.exists()) setContenido((prev) => ({ ...prev, historia: snap.data() }));
+    });
+
+    return () => {
+      unsubCursos(); unsubInscrip(); unsubPagos();
+      unsubMensajes(); unsubGeneral(); unsubHistoria();
     };
-    setData((d) => ({ ...d, cursos: [...d.cursos, payload] }));
-    syncCurso(payload);
-    return id;
-  };
+  }, []);
 
-  const updateCurso = (id, curso) => {
-    const payload = {
-      ...curso,
-      id,
-      codigo: curso.codigo || id,
-      descripcion: curso.descripcion || '',
-      destacado: curso.destacado ?? true,
-    };
-    setData((d) => ({
-      ...d,
-      cursos: d.cursos.map((c) => (c.id === id ? { ...c, ...payload } : c)),
-    }));
-    syncCurso(payload);
-  };
+  // ════════════════════════════════════════════════════════════════════════
+  // CURSOS
+  // ════════════════════════════════════════════════════════════════════════
 
-  const deleteCurso = (id) => {
-    setData((d) => ({ ...d, cursos: d.cursos.filter((c) => c.id !== id) }));
-    removeCurso(id);
-  };
+  const addCurso = useCallback(async (curso) => {
+    const ref = await addDoc(collection(db, 'cursos'), {
+      ...curso, creadoEn: serverTimestamp(),
+    });
+    return ref.id;
+  }, []);
 
-  const confirmarPago = (id) => {
-    setData((d) => ({
-      ...d,
-      pagos: d.pagos.map((p) => (p.id === id ? { ...p, estado: 'Pagado' } : p)),
-    }));
-  };
+  const updateCurso = useCallback(async (id, updates) => {
+    await updateDoc(doc(db, 'cursos', id), { ...updates, actualizadoEn: serverTimestamp() });
+  }, []);
 
-  const addPago = (pago) => {
-    const id = String(++nextId);
-    setData((d) => ({ ...d, pagos: [...d.pagos, { ...pago, id }] }));
-  };
+  const deleteCurso = useCallback(async (id) => {
+    await deleteDoc(doc(db, 'cursos', id));
+  }, []);
 
-  const marcarMensajeLeido = (id) => {
-    setData((d) => ({
-      ...d,
-      mensajes: d.mensajes.map((m) => (m.id === id ? { ...m, leido: true } : m)),
-    }));
-  };
+  // ════════════════════════════════════════════════════════════════════════
+  // INSCRIPCIONES
+  // ════════════════════════════════════════════════════════════════════════
 
-  const saveContenido = (tab, contenido) => {
-    setData((d) => ({
-      ...d,
-      contenido: { ...d.contenido, [tab]: { ...d.contenido[tab], ...contenido } },
-    }));
-  };
+  const addInscripcion = useCallback(async (inscripcion) => {
+    await addDoc(collection(db, 'inscripciones'), {
+      ...inscripcion,
+      fecha:    new Date().toLocaleDateString('es-BO'),
+      creadoEn: serverTimestamp(),
+    });
+  }, []);
 
-  const value = useMemo(
-    () => ({
-      ...data,
-      stats,
-      addCurso,
-      updateCurso,
-      deleteCurso,
-      confirmarPago,
-      addPago,
-      marcarMensajeLeido,
-      saveContenido,
-    }),
-    [data, stats]
-  );
+  const updateInscripcion = useCallback(async (id, updates) => {
+    await updateDoc(doc(db, 'inscripciones', id), updates);
+  }, []);
+
+  const deleteInscripcion = useCallback(async (id) => {
+    await deleteDoc(doc(db, 'inscripciones', id));
+  }, []);
+
+  // ════════════════════════════════════════════════════════════════════════
+  // PAGOS
+  // ════════════════════════════════════════════════════════════════════════
+
+  const addPago = useCallback(async (pago) => {
+    await addDoc(collection(db, 'pagos'), {
+      ...pago,
+      fecha:    new Date().toLocaleDateString('es-BO'),
+      creadoEn: serverTimestamp(),
+    });
+  }, []);
+
+  const confirmarPago = useCallback(async (id) => {
+    await updateDoc(doc(db, 'pagos', id), { estado: 'Pagado' });
+  }, []);
+
+  const deletePago = useCallback(async (id) => {
+    await deleteDoc(doc(db, 'pagos', id));
+  }, []);
+
+  // ════════════════════════════════════════════════════════════════════════
+  // MENSAJES
+  // ════════════════════════════════════════════════════════════════════════
+
+  const marcarMensajeLeido = useCallback(async (id) => {
+    await updateDoc(doc(db, 'mensajes', id), { leido: true });
+  }, []);
+
+  const deleteMensaje = useCallback(async (id) => {
+    await deleteDoc(doc(db, 'mensajes', id));
+  }, []);
+
+  // ════════════════════════════════════════════════════════════════════════
+  // CONTENIDO PÚBLICO (General / Historia)
+  // ════════════════════════════════════════════════════════════════════════
+
+  const saveContenido = useCallback(async (tab, data) => {
+    const id = tab.toLowerCase(); // 'general' o 'historia'
+    await setDoc(doc(db, 'contenido', id), {
+      ...data, updatedAt: serverTimestamp(),
+    }, { merge: true });
+  }, []);
+
+  // ── Stats ─────────────────────────────────────────────────────────────
+  const stats = useMemo(() => ({
+    cursos:        cursos.filter((c) => c.estado === 'Activo').length,
+    usuarios:      0,           // se llena desde AuthContext
+    inscripciones: inscripciones.length,
+    mensajes:      mensajes.filter((m) => !m.leido).length,
+    pagosTotal:    pagos.length,
+    pagosPendientes: pagos.filter((p) => p.estado === 'Pendiente').length,
+  }), [cursos, inscripciones, mensajes, pagos]);
+
+  const value = useMemo(() => ({
+    cursos, inscripciones, pagos, mensajes, contenido,
+    stats, cargando,
+    addCurso, updateCurso, deleteCurso,
+    addInscripcion, updateInscripcion, deleteInscripcion,
+    addPago, confirmarPago, deletePago,
+    marcarMensajeLeido, deleteMensaje,
+    saveContenido,
+  }), [
+    cursos, inscripciones, pagos, mensajes, contenido,
+    stats, cargando,
+    addCurso, updateCurso, deleteCurso,
+    addInscripcion, updateInscripcion, deleteInscripcion,
+    addPago, confirmarPago, deletePago,
+    marcarMensajeLeido, deleteMensaje,
+    saveContenido,
+  ]);
 
   return <AdminDataContext.Provider value={value}>{children}</AdminDataContext.Provider>;
 }
